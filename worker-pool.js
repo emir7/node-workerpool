@@ -51,17 +51,17 @@ module.exports = class WorkerPool extends EventEmitter {
 
   run(data) {
     return new Promise((resolve, reject) => {
-        const freeWorkerItem = this.findFreeWorker();
+      const freeWorkerItem = this.findFreeWorker();
 
-        if(!freeWorkerItem) {
-          this.once('freeWorker', () => {
-            return this.run(data);
-          });
+      if(!freeWorkerItem) {
+        this.once('freeWorker', () => {
+          return this.run(data);
+        });
     
-          return;
-        }
+        return;
+      }
     
-        freeWorkerItem.scheduleTask(resolve, reject, data);
+      freeWorkerItem.scheduleTask(resolve, reject, data);
     });
   }
 
