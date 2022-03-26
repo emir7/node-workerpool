@@ -1,4 +1,4 @@
-import { Worker } from 'worker_threads';
+const { Worker } = require("worker_threads");
 const { EventEmitter } = require('events');
 
 const WorkerItem = require('./worker-item');
@@ -6,6 +6,7 @@ const WorkerItem = require('./worker-item');
 module.exports = class WorkerPool extends EventEmitter {
   constructor(numberOfWorkers, workerPath) {
     super();
+
     this.numberOfWorkers = numberOfWorkers;
     this.workerPath = workerPath;
     this.workers = new Map();
@@ -25,37 +26,43 @@ module.exports = class WorkerPool extends EventEmitter {
     worker.on('message', (result) => {
       const workerItem = this.getWorkerItemById(worker.threadId);
 
-      workerItem.cb(result);
+      workerItem.resolve(result);
       workerItem.freeWorker();
 
       this.emit('freeWorker');
     });
 
     worker.on('error', (err) => {
-      console.error(err);
+      const workerItem = this.getWorkerItemById(worker.threadId);
+
+      workerItem.reject(err);
     });
 
     worker.on('exit', (code) => {
+      const workerItem = this.getWorkerItemById(worker.threadId);
+      
       if(code !== 0) {
-        console.error(`Worker exited with code ${code}`);
+        workerItem.reject(code);
       }
     });
 
     this.updateWorkerMap(worker.threadId, new WorkerItem(worker));
   }
 
-  run(data, cb) {
-    const freeWorkerItem = this.findFreeWorker();
+  run(data) {
+    return new Promise((resolve, reject) => {
+        const freeWorkerItem = this.findFreeWorker();
 
-    if(!freeWorkerItem) {
-      this.once('freeWorker', () => {
-        return this.run(data, cb);
-      });
-
-      return;
-    }
-
-    freeWorkerItem.scheduleTask(cb, data);
+        if(!freeWorkerItem) {
+          this.once('freeWorker', () => {
+            return this.run(data);
+          });
+    
+          return;
+        }
+    
+        freeWorkerItem.scheduleTask(resolve, reject, data);
+    });
   }
 
   findFreeWorker() {
