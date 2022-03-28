@@ -1,6 +1,7 @@
 const { Worker } = require("worker_threads");
 const { EventEmitter } = require('events');
 
+const Task = require("./task");
 const WorkerItem = require('./worker-item');
 
 module.exports = class WorkerPool extends EventEmitter {
@@ -10,6 +11,7 @@ module.exports = class WorkerPool extends EventEmitter {
     this.numberOfWorkers = numberOfWorkers;
     this.workerPath = workerPath;
     this.workers = new Map();
+    this.taskQueue = [];
 
     this.initWorkerPool();
   }
@@ -26,23 +28,26 @@ module.exports = class WorkerPool extends EventEmitter {
     worker.on('message', (result) => {
       const workerItem = this.getWorkerItemById(worker.threadId);
 
-      workerItem.resolve(result);
-      workerItem.freeWorker();
+      workerItem.onSuccess(result);
 
-      this.emit('freeWorker');
+      const nextTask = this.taskQueue.shift();
+
+      if(nextTask) {
+        workerItem.scheduleTask(nextTask);
+      }
     });
 
     worker.on('error', (err) => {
       const workerItem = this.getWorkerItemById(worker.threadId);
 
-      workerItem.reject(err);
+      workerItem.onError(err);
     });
 
     worker.on('exit', (code) => {
       const workerItem = this.getWorkerItemById(worker.threadId);
       
       if(code !== 0) {
-        workerItem.reject(code);
+        workerItem.onError(`Worker exited with error code: ${code}`);
       }
     });
 
@@ -52,16 +57,15 @@ module.exports = class WorkerPool extends EventEmitter {
   run(data) {
     return new Promise((resolve, reject) => {
       const freeWorkerItem = this.findFreeWorker();
-
+      const task = new Task(data, resolve, reject);
+        
       if(!freeWorkerItem) {
-        this.once('freeWorker', () => {
-          return this.run(data);
-        });
+        this.taskQueue.push(task);
     
         return;
       }
     
-      freeWorkerItem.scheduleTask(resolve, reject, data);
+      freeWorkerItem.scheduleTask(task);
     });
   }
 
