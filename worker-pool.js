@@ -1,13 +1,10 @@
 const { Worker } = require("worker_threads");
-const { EventEmitter } = require('events');
 
 const Task = require("./task");
 const WorkerItem = require('./worker-item');
 
-module.exports = class WorkerPool extends EventEmitter {
+module.exports = class WorkerPool {
   constructor(numberOfWorkers, workerPath) {
-    super();
-
     this.numberOfWorkers = numberOfWorkers;
     this.workerPath = workerPath;
     this.workers = new Map();
