@@ -1,0 +1,24 @@
+{
+  "name": "workerpool",
+  "version": "1.0.0",
+  "description": "",
+  "main": "processor.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/emir7/node-workerpool.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/emir7/node-workerpool/issues"
+  },
+  "homepage": "https://github.com/emir7/node-workerpool#readme",
+  "dependencies": {
+    "amqplib": "^0.8.0",
+    "express": "^4.17.3"
+  }
+}
